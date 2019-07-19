@@ -1,0 +1,281 @@
+---
+title: "ST3131 Group 50 Project"
+author:
+- Ang Kian Hwee (A0150445M)
+- Tan Wei Qi (A0158131M)
+- Wu Zhaoxuan (A0157080J)
+- Yu Wei (Insert your Matrix Number)
+date: "17/04/2018"
+output:
+  word_document:
+    toc: yes
+    fig_height: 4
+    fig_width: 5
+    fig_caption: true
+  pdf_document:
+    fig_caption: yes
+    fig_height: 4
+    fig_width: 5
+    number_sections: yes
+    toc: yes
+  html_document:
+    df_print: paged
+    toc: yes
+---
+
+```{r setup, echo=FALSE}
+# Importing movie data set
+library(readxl)
+movie <- read_excel("Movie Rating Dataset.xlsx")
+attach(movie)
+#detach(movie)
+```
+# Summary 
+ZX
+
+# Description of the problem 
+In the world of movies, there are popular and the not so popular movies. Viewer ratings is one way to determine how popular a movie is. Usually a movie with high ratings are more profitable to producers and distributors (Cain. (2016)). The question is, what factors contribute to these high ratings? For this project, we will confine the factors to be Rating (type), Budget, Gross Revenue and Length of movie. In general, movies with a bigger budget tends to have a higher gross revenue due to the means to be able to add in better CGIs, hiring more popular actors and increasing the length of production. All this seems appealing to viewers to come and watch it which raises the rating. However, according to reports, bigger budget does not equate to higher viewer ratings (Critchfield. (2009); Christiana Balta. (2012)). 
+In this project, we would like to find out if there is really a connection between the Budget of a movie, the Gross Revenue it earns, the Length of the movie and the Rating with the amount of Viewer Rating it gets. The model we build to predict if the movie would be popular will help producers and distributors. Producers will know how much budget to allocate into producing the movie, what is the suitable duration and what type of movie would entice viewers. Distributors will know what type of movies they should put up in order to boost their sales.
+
+# Description of the dataset 
+Our dataset is obtained from Florida State University, The Department of Scientific Computing (2011). The dataset which contains 36 movies of various genres with a range of viewer ratings is shown in Data 1. 
+Of the 6 independent variables in the dataset, we have chosen 4 which are practical to solving our problem. They are:  
+Rating - The different categories of movies. R, PG, PG-13 and G. 
+Budget ($Million) - The total money used to produce the movie. 
+Gross Revenue ($Million) - The total Box Office which the movie garnered since released. 
+Length of movie (minutes) - The duration of the movie in minutes. 
+Viewer Rating - The rating of the movie given by the audiences who watched it. 
+To facilitate our analysis process, we have termed these variables into Y (dependent variable) and Xi (independent variables). As mentioned, we want to know if a movie will be popular based on viewer ratings, hence Viewer Rating is our Y. While the factors that could affect the viewer rating such as Budget, Gross Revenue and Length of movie are our xi (x1 , x2, x3). As Rating is a categorical variable with 4 different groups, we implemented dummy variables to represent them. They are: 
+d1
+1, if "R"
+0, otherwise
+d2
+1, if "PG"
+0, otherwise
+d3
+1, if "PG-13"
+0, otherwise 
+
+In total, we have 1 dependent variable, Y (Viewer Rating) and 6 independent variables/predictors (x1 , x2, x3, d1, d2, d3).
+In addition, we have categorised Viewer Ratings into ranges for easy identification. They are as follow: 
+
+| Excellent | 8.1 and above|
+| Decent | 4.1 - 8.0 |
+| Not good | 0 - 4.0 |
+
+# Statstical Analysis and Findings for Movie Model
+
+## Building the Initial Model
+To reach our final model, we came up with our initial model which include all variables. The initial model (1) is as follow:\newline
+
+$$y = \beta_0 + \beta_1x_1 + \beta_2x_2 + \beta_3x_3 + \beta_4d_1 + \beta_5d_2 + \beta_6d_3 ------(1)$$
+```{r echo=FALSE, tidy=TRUE, results='hold'}
+# Estimates and Significance of inital model 
+modelinitial <- lm(y~x1+x2+x3+d1+d2+d3)
+summary(modelinitial)
+```
+Table 1: Inital Model's Statistics Summary
+
+From Table 1, our initial model's p-value (0.0004) is less than $\alpha$ 0.05, we reject $H_0$ and conclude that the initial model is significant. The Adjusted R-squared value of 0.457 suggest that the Viewer Rating (y) is dependent on at least one of the initial predictors, with a moderate number being explained by the predictors.    
+
+## Residual Plots
+Although our initial model is significant, we would like to test the assumption of constant variance. We plot the residual plot with residuals against fitted values as shown in Figure 1. 
+
+```{r pressure, echo=FALSE, fig.cap="Figure 1: Initial Model's Residual Plot", fig.align="center"}
+# Plot residual plot (residual vs yhat)
+res <- modelinitial$residuals
+fv <- modelinitial$fitted.values
+plot(fv, res, xlab="Fitted values", ylab="Residuals", main="Residuals against Fitted values")
+abline(h=0, lty=2)
+```
+
+From Figure 1, the residuals exhibits no obvious patterns. Hence there is need for transformation of the model.
+
+## Improving the Initial Model 
+We consider improving our initial model with Backwards Selection using the step function in R.The ouputs are shown in Table 2.  
+```{r echo=TRUE, tidy=TRUE, results='hold'}
+modelnull <- lm(y~1, data=movie)
+step(modelinitial, data=movie, scope=list(upper=modelinitial, lower=modelnull), direction = "backward", k=2, test="F")
+```
+Table 2: Backwards Selection
+
+The result (very low AIC values) shows that all 6 initial predictors are significant in the model at 0.05 $\alpha$. Since the inital model contains only linear predictors of first order, we consider including second order predictors and interaction terms in the model. We employ Stepwise Regression to help us determine if these higher order terms should be included in the model. Since there are 6 initial predictors, we will consider 3 second order terms and 12 interaction terms. 
+
+```{r echo=FALSE, tidy=TRUE, results='hold'}
+# Create second order and interaction terms 
+x1sq = x1*x1
+x1x2 = x1*x2
+x1x3 = x1*x3
+x1d1 = x1*d1
+x1d2 = x1*d2
+x1d3 = x1*d3
+
+x2sq = x2*x2
+x2x3 = x2*x3
+x2d1 = x2*d1
+x2d2 = x2*d2
+x2d3 = x2*d3
+
+x3sq = x3*x3
+x3d1 = x3*d1
+x3d2 = x3*d2
+x3d3 = x3*d3
+
+modelfull <- lm(y~x1+x2+x3+d1+d2+d3+x1sq+x2sq+x3sq+x1x2+x1x3+x1d1+x1d2+x1d3+x2x3+x2d1+x2d2+x2d3+x3d1+x3d2+x3d3)
+
+step(modelnull, data=movie, scope=list(upper=modelfull, lower=modelnull), direction = "both", k=2, test="F")
+```
+Table 3: Stepwise Regression
+
+By running Stepwise Regression, our best second order model with is as follow: 
+
+$$y = \beta_0 + \beta_1x_1 +  \beta_2x_1x_3 + \beta_3x_1^2 ------(2)$$
+
+This seems to suggest that there is an interaction between Budget and Length of movie. The new model reduces the number of predictors from 6 to 3 which makes the model much simpler. 
+
+## Significance of "Best" Model
+To conclude that the new model is the "best", we run a F Test in R to test the significance of the model. As shown in Table 4, we obtained a p-value of 0.000026 which is lesser than 0.05 . Hence we reject  and conclude that the new model is significant. The Adjusted R-squared value of 0.4763 suggests that close to 48% of Viewer Ratings can be explained by the predictors.     
+```{r echo=FALSE, tidy=TRUE, results='hold'}
+modelfinal <- lm(y~x1+x1x3+x1sq)
+summary(modelfinal)
+```
+Table 4: New Model's Summary Statistics
+
+# Assumption on Error Terms, Outliers and Multicollinearity and evaluations
+
+## Examination of Assumptions on Error Terms
+
+In the process of fitting a best model above, we have made three assumptions on the error terms: the constant variance, the normality and the independence of the them. We will now test the reliability of the model by examining whether the assumptions truly hold.
+
+## Constant Variance of Error Terms
+
+We plot a residual plot of residuals against fitted values. 
+```{r echo=FALSE, tidy=TRUE, fig.cap="Figure 2: Final Model's Residual Plot", fig.align='center'}
+# Plot residual plot (residual vs yhat)
+res <- modelfinal$residuals
+fv <- modelfinal$fitted.values
+plot(fv, res, xlab="Fitted values", ylab="Residuals", main="Residuals against Fitted values")
+abline(h=0)
+```
+
+The plot shows a minor inverted horizontal V pattern, in which the variance is not constant, but decreases with the the fitted values of y. However as this is not obvious, we assume that the assumption of constant variance is not violated and no transformation is needed. 
+
+## Independence of Error Terms (Durbin-Watson Test)
+
+We use the Durbin-Watson Test to test for any serial correlation among the data. Test $H_0:\rho=0$ for all s against $H_1:\rho\neq0$, where $\rho$ is the correlations between $i$th and the $(i-1)$th observation. As we can see from the output below, the D-W statistic equals 1.667. By checking the critical values table for $n=36, k=3$, we know $d_U=1.56$. Since $d>d_U$ and $4-d=2.333>d_U$, and the p-value shown below is larger than 0.05, we do not reject $H_0$ and conclude that no serial correlation exists.
+
+```{r tidy=TRUE, results='hold', warning=FALSE}
+library(car)
+durbinWatsonTest(modelfinal)
+```
+
+## Normality of Error Terms
+### Q-Q Plot
+```{r echo=FALSE, tidy=TRUE, results='hold', fig.cap="Figure 3: Q-Q Plot", fig.align="center"}
+qqnorm(modelfinal$residuals, xlab = "Normal Scores", ylab = "Ordered Residuals", main = "Normal Q-Q Plot")
+qqline(modelfinal$residuals, lty=2)
+```
+
+The plot of $e(j)'s$ shown in the plot against the normal score follows roughly a straight line drawn by the qqline function, except for near the left end of the graph. A small number of points deviates from the straight line, suggesting that the distribution could be slightly left-skewed. This could be because of the outliers in the dataset, which will be discussed in the next section.Judging from the overall trend, we can conclude that the error terms still follows a normal distribution.
+
+We would continue to back up the normality with another more deterministic test below.
+
+### Kolmogorov-Smirnov Test
+
+Perform Kolmogorov-Smirnov Test with the null hypothesis $H_0:$ the data follow a normal distribution. The alternative hypothesis is $H_1:$ the data does not follow a normal distribution.
+
+```{r tidy=TRUE, results='hold'}
+res <- modelfinal$residuals
+ks.test(res, "pnorm", mean(res), sd(res))
+
+```
+
+The K-S test has a p-value of 0.5249, which is much bigger than 0.05. We do not reject the null hypothesis and conclude with more confidence that the normality assumption of error terms holds.
+
+## Outliers and Influential points
+
+Outliers and influential points shifts the fitting of the model significantly. We would identify and potentially identify the outliers in this section in order to further improve our model. The criteria we would use are the Leverage, DFFITS, DEBETAS and the studentized residual RSTUDENT ($e_i^*$) for the data instances.
+
+Prior running the R code, we compute the conditions and cut-offs for each criterion. Note that in our model, $p=3$ and $n=36$.
+
+* Leverage: Check if $h_{ii}$ is far away from $\frac{p+1}{n}=\frac{3+1}{36}\approx0.111$
+
+* DFFITS: Check if $|DFFITS_i|>2\sqrt{(p+1)/(n-p-1)}=2\sqrt{\frac{4}{32}}\approx0.707$
+
+* DFBETAS: Check if $|DFBETAS_{ii}|>2/\sqrt{n}=2/\sqrt{36}\approx0.333$
+
+* RSTUDENT: Check if $|e_i^*|>2$
+
+
+```{r echo=FALSE, tidy=TRUE}
+library(car)
+influence.measures(modelfinal)
+```
+*Table 5: Influence Measures Statistics*
+
+```{r}
+rstudent(modelfinal)
+```
+*Table 6: RSTUDENTS values*
+
+Using *Table 5*, we can extract the following information:
+
+* Leverage of observation 4 and 34 are much higher than 0.111.
+* |DFFITS| of observation 21, 28 and 34 are bigger than the cut-off 0.707.
+* |DFBETAS| cut-off 0.333
+    + $\beta_0$: Observation 17, valued at 0.342, not substantial
+    + $\beta_1$: Observation 7 (0.42338), 16 (0.45778), 21 (1.02403), 28 (0.90597) and 34 (0.58408)
+    + $\beta_2$: Observation 7 (0.39338), 16 (0.38660), 21 (0.97576), 25 (0.46409) and 28 (0.78795)
+    + $\beta_3$: Observation 21 (0.45251), 25 (0.45896), 28(0.39942) and 34 (0.44952)
+    
+Using *Table 6*, we have Observation 21 and 28 has RSTUDENT value larger than 2. In summary, observations 21 and 28 are tagged as potential outliers or influential points. 
+
+
+### Dealing with the Outliers
+
+Overall, observation 21 and 28 have the most number of supporting evidence being potential outliers or influential observations. We now look into the dataset, observation 28 is indeed an obvious outlier. The movie "Speed 2:Cruise Control" has a very high budget and length, but was only graded to have the rating of 4.3, which is actually the lowest in the data set with the average rating of around 7.4. In contrast, the observation 21 "Men in Black" is given a way too high rating of 7.4 given its very short length of only 98 minutes.
+
+Our group believe that these extreme values would significantly affect the fitting of the regression model, without much addition to the generalisation of the model. A model without such extreme cases would be proven to generally better interpolate ratings for other given movies outside this dataset.
+
+Therefore, we fit the regression model again on a new dataset with the outliers removed, yielding the following:
+
+```{r}
+# Remove outlier observations 21 and 28
+movieOutlierDeleted <- movie[c(-28,-21),]
+x1OutlierDeleted <- x1[c(-28,-21)]
+x1x3OutlierDeleted <- x1x3[c(-28,-21)]
+x1sqOutierDeleted <- x1sq[c(-28,-21)]
+yOutlierDeleted <- y[c(-28,-21)]
+modelfinal2 <- lm(yOutlierDeleted~x1OutlierDeleted+x1x3OutlierDeleted+x1sqOutierDeleted)
+summary(modelfinal2)
+
+# Residual plot of the modelfinal2
+plot(modelfinal2$fitted.values, modelfinal2$residuals, xlab="Fitted values", ylab="Residuals", main="Residuals against Fitted values")
+abline(h=0)
+
+```
+
+    
+## Checking for Multicolinearity 
+
+Before we make the final conclusion of our model, we check for the existance of any multicollinearity. The quality of the estimates, as measured by their variances, can be seriously affected if the predictor variables are linearly dependent. Tolerance $(TOL)$, variance inflation factor $(VIF)$ and the condition index $(\eta)$ for each column is computed for investigation
+
+```{r}
+# VIF
+vif(modelfinal2)
+# TOL
+1/vif(modelfinal2)
+
+# Condition Index
+library(perturb)
+colldiag(modelfinal2)
+```
+*Table 7: VIF and Condition Index table*
+
+The value of VIF for the 3 columns are not too big to claim the presence of multicollinearity. As there is no strict threshold for VIF to be considered as large, we also used condition index as another indicator. We can see from *Table 7* that the condition index for the smallest eigenvalue is 16.881, which is much smaller that the suggested cut-off value 30. We conclude that there is no multicollinearity in our model.
+
+# Interpretations of the findings
+
+
+# Conclusion
+YW, ZX
